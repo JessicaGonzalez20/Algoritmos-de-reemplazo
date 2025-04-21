@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Reemplazo de Páginas</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif;
+            text-align: center;
+            background: linear-gradient(-45deg, #a1aa92, #b2afca, #e0c3aa, #aedac9, #d3b7ca);
+            animation: bg 12s ease infinite;
+            background-size: 200% 200%;
+        }
+        @keyframes bg {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        h1 {
+            font-size: 2.5rem;
+            color: #2c7a7b;
+            margin-bottom: 1rem;
+            
+        }
+        .input-section, .results-section {
+            margin: 2rem auto;
+            max-width: 900px;
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        label, select, input, button {
+            font-size: 1rem;
+            margin: 0.5rem;
+        }
+        table {
+            margin: 1rem auto;
+            border-collapse: collapse;
+        }
+        
+    </style>
+</head>
+
+<body>
+    <!-- From Uiverse.io by Nawsome --> 
+    <div aria-label="Orange and tan hamster running in a metal wheel" role="img" class="wheel-and-hamster">
+        <div class="wheel"></div>
+        <div class="hamster">
+            <div class="hamster__body">
+                <div class="hamster__head">
+                    <div class="hamster__ear"></div>
+                    <div class="hamster__eye"></div>
+                    <div class="hamster__nose"></div>
+                </div>
+                <div class="hamster__limb hamster__limb--fr"></div>
+                <div class="hamster__limb hamster__limb--fl"></div>
+                <div class="hamster__limb hamster__limb--br"></div>
+                <div class="hamster__limb hamster__limb--bl"></div>
+                <div class="hamster__tail"></div>
+            </div>
+        </div>
+        <div class="spoke"></div>
+    </div>
+
+    
+    <div class="contenido" style="display: none;">
+
+        <h1>Simulador de Reemplazo de Páginas</h1>
+        <div class="input-section">
+            <label for="algorithm">Algoritmo:</label>
+            <select id="algorithm">
+                <option value="FIFO">FIFO</option>
+                <option value="OPTIMO">Óptimo</option>
+                <option value="LRU">LRU</option>
+                <option value="SEGUNDA_OPORTUNIDAD">Segunda Oportunidad</option>
+            </select>
+            <br>
+            <label for="frames">Número de Marcos:</label>
+            <input type="number" id="frames" value="3" min="1">
+            <br>
+            <label for="sequence">Secuencia de Referencias (separadas por comas):</label>
+            <input type="text" id="sequence" placeholder="Ej: 7, 0, 1, 2, 0, 3, 0, 4">
+            <br>
+            <br>
+            <button class ="btn" onclick="simular()">Simular</button>
+        </div>
+
+        <div class="results-section">
+            <div id="grafico"></div>
+            <div id="fallos"></div>
+            <div id="tabla-resultados"></div>
+        </div>
+        <!-- From Uiverse.io by vinodjangid07 --> 
+        <button id="newSimulation" class="button">
+            <svg viewBox="0 0 448 512" class="svgIcon"><path d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64S14.3 96 32 96H416c17.7 0 32-14.3 32-32s-14.3-32-32-32H320l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32L53.2 467c1.6 25.3 22.6 45 47.9 45H346.9c25.3 0 46.3-19.7 47.9-45L416 128z"></path></svg>
+        </button>
+        <br><br>
+        <script>
+            document.getElementById("newSimulation").addEventListener("click", function() {
+                //vaciar los campos de entrada y resultados
+                document.getElementById("algorithm").value = "FIFO";
+                document.getElementById("frames").value = 3;
+                document.getElementById("sequence").value = "";
+
+                //Limpiar resultados
+                document.getElementById("grafico").innerHTML = "";
+                document.getElementById("fallos").innerHTML = "";
+                document.getElementById("tabla-resultados").innerHTML = "";
+
+            });
+        
+            function simular() {
+                const algoritmo = document.getElementById("algorithm").value;
+                const frames = parseInt(document.getElementById("frames").value);
+                const sequence = document.getElementById("sequence").value.split(',').map(x => parseInt(x.trim())).filter(x => !isNaN(x));
+                
+        
+
+                fetch("/simular", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ algoritmo, frames, sequence })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    mostrarResultados(data);
+                });
+            }
+
+            function mostrarResultados(data) {
+                const fallos = document.getElementById("fallos");
+                const tablaResultados = document.getElementById("tabla-resultados");
+
+                grafico.innerHTML = `<img src="${data.image_path}?t=${Date.now()}" alt="Gráfico de Reemplazo" style="max-width: 100%; height: auto;">`;
+                fallos.innerHTML = `<h3>Fallos de página: ${data.fallos}</h3>`;
+
+                let tabla = `<table><thead><tr><th>Referencia</th>`;
+                for (let i = 0; i < data.frames[0].length; i++) {
+                    tabla += `<th>Marco ${i + 1}</th>`;
+                }
+                tabla += `</tr></thead><tbody>`;
+
+                data.frames.forEach((fila, i) => {
+                    tabla += `<tr><td>${data.referencias[i]}</td>`;
+                    fila.forEach(m => {
+                        tabla += `<td>${m === null ? '-' : m}</td>`;
+                    });
+                    tabla += `</tr>`;
+                });
+                tabla += `</tbody></table>`;
+                tablaResultados.innerHTML = tabla;
+            }
+
+        </script>
+    </div>
+</body>
+</html>
